@@ -20,7 +20,8 @@ L'Australie est un continent vaste caractérisé par une grande diversité de cl
 ├── notebooks/
 │   ├── 01_exploration_and_cleaning.ipynb # EDA + nettoyage
 │   ├── 02_baseline_et_reg_log.ipynb      # baseline + régression logistique
-│   └── 03_modeles_catboost_et_deep.ipynb # CatBoost + MLP
+│   ├── 03_modeles_catboost_et_deep.ipynb # CatBoost + MLP
+|   └── Notebook_Meteo_Florian_Clement.ipynb # Notebook initial de recherche
 ├── requirements.txt
 └── README.md
 ```
