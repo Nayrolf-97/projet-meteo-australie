@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Données générées (on garde weatherAUS.csv, on ignore les sorties)
+df_clean.csv
+*.pkl
+*.joblib
+
+# Modèles sauvegardés
+*.h5
+*.keras
+catboost_info/
+
+# Cartes folium générées (volumineuses)
+maps_missing/
+australia_nan_*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
