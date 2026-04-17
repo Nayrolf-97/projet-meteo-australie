@@ -1,3 +1,17 @@
+"""
+weather_geo.py — Géocodage des stations météo et cartographie des valeurs manquantes.
+
+Ce module fournit :
+- les coordonnées GPS des 49 stations du dataset weatherAUS
+  (vérifiées manuellement après géocodage initial via geopy/ArcGIS) ;
+- des fonctions pour construire des cartes folium montrant la
+  distribution spatiale des valeurs manquantes par station.
+
+Ces cartes sont utiles pour comprendre que certains manques ne sont pas
+aléatoires mais concentrés sur certaines stations (Evaporation, Sunshine,
+Clouds sont quasi absentes dans plusieurs stations de l'intérieur).
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,6 +19,9 @@ from pathlib import Path
 import folium
 import pandas as pd
 
+# Coordonnées (latitude, longitude) des 49 stations météo.
+# Sources : géocodage ArcGIS via geopy, puis correction manuelle
+# pour les stations mal localisées (PearceRAAF notamment).
 LOCATION_COORDS = {
     "Adelaide": (-34.9281805, 138.5999312),
     "Albany": (-35.0247822, 117.883608),
@@ -59,6 +76,7 @@ LOCATION_COORDS = {
 
 
 def location_coordinates_frame() -> pd.DataFrame:
+    """Renvoie un DataFrame avec les colonnes Location, Latitude, Longitude."""
     return (
         pd.DataFrame.from_dict(LOCATION_COORDS, orient="index", columns=["Latitude", "Longitude"])
         .rename_axis("Location")
@@ -67,11 +85,24 @@ def location_coordinates_frame() -> pd.DataFrame:
 
 
 def add_location_coordinates(df: pd.DataFrame) -> pd.DataFrame:
+    """Ajoute les colonnes Latitude et Longitude au DataFrame via un merge sur Location."""
     coords_df = location_coordinates_frame()
     return df.merge(coords_df, on="Location", how="left")
 
 
-def build_location_missing_summary(df: pd.DataFrame, columns) -> pd.DataFrame:
+def build_location_missing_summary(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Construit un résumé du nombre de NaN par station pour les colonnes données.
+
+    Paramètres
+    ----------
+    df : DataFrame brut (avec colonne Location).
+    columns : liste des colonnes pour lesquelles compter les NaN.
+
+    Return
+    ------
+    DataFrame avec une ligne par station, contenant les coordonnées GPS
+    et le nombre de NaN pour chaque colonne demandée.
+    """
     df_geo = add_location_coordinates(df)
     grouped = (
         df_geo.groupby("Location")
@@ -94,7 +125,23 @@ def make_missing_value_map(
     column: str,
     radius_scale: float = 50,
     min_radius: float = 2,
-):
+) -> folium.Map:
+    """Crée une carte folium avec des cercles proportionnels au nombre de NaN.
+
+    Chaque station est représentée par un cercle rouge dont le rayon
+    est proportionnel au nombre de valeurs manquantes pour la colonne donnée.
+
+    Paramètres
+    ----------
+    grouped : résumé par station (sortie de build_location_missing_summary).
+    column : nom de la variable à cartographier.
+    radius_scale : diviseur pour convertir le nombre de NaN en rayon de cercle.
+    min_radius : rayon minimum pour les stations sans ou avec très peu de NaN.
+
+    Return
+    ------
+    Objet folium.Map prêt à être affiché ou sauvegardé en HTML.
+    """
     nan_col = f"{column}_NaN_count"
     m = folium.Map(location=[-25.2744, 133.7751], zoom_start=4, tiles="cartodbpositron")
 
@@ -115,7 +162,24 @@ def make_missing_value_map(
     return m
 
 
-def build_missing_value_maps(grouped: pd.DataFrame, columns, output_dir: str | Path | None = None):
+def build_missing_value_maps(
+    grouped: pd.DataFrame,
+    columns: list[str],
+    output_dir: str | Path | None = None,
+) -> dict[str, folium.Map]:
+    """Génère une carte de NaN par colonne et les sauvegarde en HTML si demandé.
+
+    Paramètres
+    ----------
+    grouped : résumé par station (sortie de build_location_missing_summary).
+    columns : liste des colonnes à cartographier.
+    output_dir : si fourni, chaque carte est sauvegardée dans ce dossier
+        sous le nom australia_nan_{colonne}.html.
+
+    Return
+    ------
+    Dictionnaire {nom_colonne: objet folium.Map}.
+    """
     maps = {}
     output_path = Path(output_dir) if output_dir is not None else None
 
